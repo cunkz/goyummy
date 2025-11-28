@@ -1,0 +1,115 @@
+app:
+  name: libary-application
+  environment: development
+
+server:
+  host: 0.0.0.0
+  port: 8080
+
+logging:
+  level: error
+  file: /var/log/myapp.log
+
+databases:
+  - name: primary
+    engine: postgres
+    uri: postgres://user:password@localhost:5432/main_db?sslmode=disable
+    pool:
+      max: 10
+      min: 2
+
+  - name: analytic
+    engine: mysql
+    uri: mysql://root:pass@localhost:3306/analytic_db
+    pool:
+      max: 20
+      min: 5
+
+  - name: config
+    engine: mongodb
+    uri: mongodb://localhost:27017/config_db
+    pool:
+      max: 15
+      min: 3
+
+  - name: cache
+    engine: redis
+    uri: redis://localhost:6379
+    pool:
+      max: 5
+      min: 1
+
+modules:
+  - name: category
+    database: primary
+    table: category
+    fields:
+      - name
+    read_configs:
+      fields:
+        - category.name
+      joins:
+    operations:
+      create:
+        enable: true
+      read_list:
+        enable: true
+      read_single:
+        enable: true
+      update:
+        enable: true
+      delete:
+        enable: true
+  - name: author
+    database: primary
+    table: author
+    fields:
+      - name
+      - country
+    read_configs:
+      fields:
+        - author.name
+        - author.country
+      joins:
+    operations:
+      create:
+        enable: true
+      read_list:
+        enable: true
+      read_single:
+        enable: true
+      update:
+        enable: true
+      delete:
+        enable: true
+  - name: book
+    database: primary
+    table: book
+    fields:
+      - title
+      - published_at
+      - author_id
+      - category_id
+    read_configs:
+      fields:
+        - book.title
+        - book.published_at
+        - category.name
+        - author.name
+        - author.country
+      joins:
+        - table: category
+          param: book.category_id = catagory.id
+        - table: author
+          param: book.author_id = author.id
+    operations:
+      create:
+        enable: true
+      read_list:
+        enable: true
+      read_single:
+        enable: true
+      update:
+        enable: true
+      delete:
+        enable: true
