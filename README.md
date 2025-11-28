@@ -15,7 +15,7 @@
 </p>
 
 <p align="center">
-  <code>git clone https://github.com/cunkz/goyummy.git && cd GoYummy</code>
+  <code>git clone https://github.com/cunkz/goyummy.git && cd goyummy</code>
 </p>
 
 ---
