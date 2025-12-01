@@ -22,7 +22,7 @@
 
 ## About
 
-GoYummy helps you generate and manage lightweight service using a simple Go + Fiber by YAML.JSON configs. It's small, fast, and a little bit fun.
+GoYummy helps you generate and manage lightweight service using a simple Go + Fiber by YAML/JSON configs. It's small, fast, and a little bit fun.
 
 ---
 
