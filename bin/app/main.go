@@ -12,7 +12,7 @@ import (
 	"github.com/cunkz/goyummy/bin/helpers/utils"
 	"github.com/cunkz/goyummy/bin/middleware"
 
-	handlers "github.com/cunkz/goyummy/bin/modules/product"
+	handlers "github.com/cunkz/goyummy/bin/modules/default"
 )
 
 func main() {
