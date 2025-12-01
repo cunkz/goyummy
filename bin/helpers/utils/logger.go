@@ -1,4 +1,4 @@
-package logger
+package utils
 
 import (
 	"os"
@@ -9,7 +9,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func InitLogger(cfg *recipe.AppRecipe) {
+func InitLogger(cfg *recipe.AppConfig) {
 	// Set log output (stdout or file)
 	var output *os.File
 	if cfg.Logging.Output == "stdout" {

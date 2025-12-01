@@ -1,4 +1,4 @@
-package recipe
+package config
 
 import (
 	"encoding/json"
@@ -10,7 +10,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-type AppRecipe struct {
+type AppConfig struct {
 	App struct {
 		Name        string `yaml:"name" json:"name"`
 		Environment string `yaml:"environment" json:"environment"`
@@ -45,7 +45,7 @@ type AppRecipe struct {
 // OPTIONAL: auto-detect recipe file
 // -------------------------------------
 
-func detectRecipeFile() string {
+func detectConfigFile() string {
 	if _, err := os.Stat("recipe.yaml"); err == nil {
 		return "recipe.yaml"
 	}
@@ -58,9 +58,9 @@ func detectRecipeFile() string {
 	return "" // no file found
 }
 
-func loadFromFile(path string) (*AppRecipe, error) {
+func loadFromFile(path string) (*AppConfig, error) {
 	if path == "" {
-		return &AppRecipe{}, nil // no file, empty recipe
+		return &AppConfig{}, nil // no file, empty recipe
 	}
 
 	data, err := os.ReadFile(path)
@@ -68,7 +68,7 @@ func loadFromFile(path string) (*AppRecipe, error) {
 		return nil, err
 	}
 
-	var cfg AppRecipe
+	var cfg AppConfig
 	switch filepath.Ext(path) {
 	case ".yaml", ".yml":
 		err = yaml.Unmarshal(data, &cfg)
@@ -83,7 +83,7 @@ func loadFromFile(path string) (*AppRecipe, error) {
 
 // -------------------------------------
 
-func loadFromEnvRecipe() (*AppRecipe, error) {
+func loadFromEnvConfig() (*AppConfig, error) {
 	y := os.Getenv("CONFIG_YAML")
 	j := os.Getenv("CONFIG_JSON")
 
@@ -91,7 +91,7 @@ func loadFromEnvRecipe() (*AppRecipe, error) {
 		return nil, nil
 	}
 
-	var cfg AppRecipe
+	var cfg AppConfig
 	var err error
 
 	if y != "" {
@@ -105,7 +105,7 @@ func loadFromEnvRecipe() (*AppRecipe, error) {
 
 // -------------------------------------
 
-func applyEnvOverrides(cfg *AppRecipe) {
+func applyEnvOverrides(cfg *AppConfig) {
 	if v := os.Getenv("APP_NAME"); v != "" {
 		cfg.App.Name = v
 	}
@@ -124,7 +124,7 @@ func applyEnvOverrides(cfg *AppRecipe) {
 
 // -------------------------------------
 
-func merge(dst, src *AppRecipe) {
+func merge(dst, src *AppConfig) {
 	// strings
 	if src.App.Name != "" {
 		dst.App.Name = src.App.Name
@@ -159,14 +159,14 @@ func merge(dst, src *AppRecipe) {
 // Auto loader (file + env + overrides)
 // ------------------------
 
-func LoadAuto(paths ...string) (*AppRecipe, error) {
-	cfg := &AppRecipe{}
+func LoadAuto(paths ...string) (*AppConfig, error) {
+	cfg := &AppConfig{}
 
 	var path string
 	if len(paths) > 0 && paths[0] != "" {
 		path = paths[0] // user provided recipe path
 	} else {
-		path = detectRecipeFile() // auto-detect recipe file
+		path = detectConfigFile() // auto-detect recipe file
 	}
 
 	// 1. Load from file if path available
@@ -177,7 +177,7 @@ func LoadAuto(paths ...string) (*AppRecipe, error) {
 	merge(cfg, fileCfg)
 
 	// 2. Load from ENV (CONFIG_YAML / CONFIG_JSON)
-	envCfg, err := loadFromEnvRecipe()
+	envCfg, err := loadFromEnvConfig()
 	if err != nil {
 		return nil, err
 	}

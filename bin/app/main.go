@@ -10,16 +10,16 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/rs/zerolog/log"
 
-	recipe "github.com/cunkz/goyummy/bin/config"
-	logger "github.com/cunkz/goyummy/bin/helpers/utils"
+	"github.com/cunkz/goyummy/bin/config"
+	"github.com/cunkz/goyummy/bin/helpers/utils"
 	middleware "github.com/cunkz/goyummy/bin/middleware"
 )
 
 func main() {
-	cfg, _ := recipe.LoadAuto()
+	cfg, _ := config.LoadAuto()
 
 	// Initialize logger
-	logger.InitLogger(cfg)
+	utils.InitLogger(cfg)
 	log.Info().Msg("Init Logger")
 
 	// Create Fiber instance
@@ -28,20 +28,8 @@ func main() {
 	// Add request logging middleware
 	app.Use(middleware.RequestLogger())
 
-	// Health check: service alive
-	app.Get("/healthz", func(c *fiber.Ctx) error {
-		return c.JSON(fiber.Map{
-			"status": "ok",
-		})
-	})
-
-	// Ready check: app dependencies ready
-	app.Get("/readyz", func(c *fiber.Ctx) error {
-		// add DB/ping check here if needed
-		return c.JSON(fiber.Map{
-			"ready": true,
-		})
-	})
+	// Add Ready and Health check Route
+	utils.RegisterHealthCheckRoutes(app)
 
 	// Combine host + port
 	address := cfg.Server.Host + ":" + strconv.Itoa(cfg.Server.Port)
