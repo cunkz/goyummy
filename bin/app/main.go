@@ -2,21 +2,25 @@ package main
 
 import (
 	"fmt"
-	"log"
+
+	"github.com/rs/zerolog/log"
 
 	recipe "github.com/cunkz/goyummy/bin/config"
+	logger "github.com/cunkz/goyummy/bin/helpers/utils"
 )
 
 func main() {
-	cfg, err := recipe.LoadAuto()
-	if err != nil {
-		log.Fatal(err)
-	}
+	cfg, _ := recipe.LoadAuto()
+
+	// Initialize logger
+	logger.InitLogger(cfg)
+	log.Info().Msg("Init Logger")
 
 	fmt.Println("App Name:", cfg.App.Name)
 	fmt.Println("Environment:", cfg.App.Environment)
 	fmt.Println("Server running on:", cfg.Server.Host, cfg.Server.Port)
 	fmt.Println("Log Level:", cfg.Logging.Level)
+	fmt.Println("Log Output:", cfg.Logging.Output)
 
 	// Use the database config
 	for _, db := range cfg.Databases {
