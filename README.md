@@ -3,9 +3,9 @@
 </p>
 
 <p align="center">
-  <a href="#"><strong>GoYummy — Fun YAML builder for Go + Fiber</strong></a>
+  <a href="#"><strong>GoYummy — Tasty service builder Go + Fiber</strong></a>
   <br />
-  <em>Build simple service-based YAML configs quickly using Go and Fiber.</em>
+  <em>Build simple service quickly using Go and Fiber by YAML/JSON configs. Bon Appétit.</em>
 </p>
 
 ---
@@ -22,15 +22,13 @@
 
 ## About
 
-GoYummy helps you generate and manage lightweight service YAML files using a simple Go + Fiber. It's small, fast, and a little bit fun.
+GoYummy helps you generate and manage lightweight service using a simple Go + Fiber by YAML.JSON configs. It's small, fast, and a little bit fun.
 
 ---
 
 ## Features
 
-- Generate service YAML templates (HTTP, DB, etc)
 - Simple REST API built with Fiber
-- Export / import YAML files
 
 ---
 
