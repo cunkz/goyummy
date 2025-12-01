@@ -45,71 +45,9 @@ modules:
     table: category
     fields:
       - name
-    read_configs:
-      fields:
-        - category.name
-      joins:
     operations:
-      create:
-        enable: true
-      read_list:
-        enable: true
-      read_single:
-        enable: true
-      update:
-        enable: true
-      delete:
-        enable: true
-  - name: author
-    database: primary
-    table: author
-    fields:
-      - name
-      - country
-    read_configs:
-      fields:
-        - author.name
-        - author.country
-      joins:
-    operations:
-      create:
-        enable: true
-      read_list:
-        enable: true
-      read_single:
-        enable: true
-      update:
-        enable: true
-      delete:
-        enable: true
-  - name: book
-    database: primary
-    table: book
-    fields:
-      - title
-      - published_at
-      - author_id
-      - category_id
-    read_configs:
-      fields:
-        - book.title
-        - book.published_at
-        - category.name
-        - author.name
-        - author.country
-      joins:
-        - table: category
-          param: book.category_id = catagory.id
-        - table: author
-          param: book.author_id = author.id
-    operations:
-      create:
-        enable: true
-      read_list:
-        enable: true
-      read_single:
-        enable: true
-      update:
-        enable: true
-      delete:
-        enable: true
+      - create
+      - read_list
+      - read_single
+      - update
+      - delete
