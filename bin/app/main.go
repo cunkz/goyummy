@@ -1,12 +1,18 @@
 package main
 
 import (
-	"fmt"
+	"net"
+	"os"
+	"os/signal"
+	"strconv"
+	"syscall"
 
+	"github.com/gofiber/fiber/v2"
 	"github.com/rs/zerolog/log"
 
 	recipe "github.com/cunkz/goyummy/bin/config"
 	logger "github.com/cunkz/goyummy/bin/helpers/utils"
+	middleware "github.com/cunkz/goyummy/bin/middleware"
 )
 
 func main() {
@@ -16,23 +22,51 @@ func main() {
 	logger.InitLogger(cfg)
 	log.Info().Msg("Init Logger")
 
-	fmt.Println("App Name:", cfg.App.Name)
-	fmt.Println("Environment:", cfg.App.Environment)
-	fmt.Println("Server running on:", cfg.Server.Host, cfg.Server.Port)
-	fmt.Println("Log Level:", cfg.Logging.Level)
-	fmt.Println("Log Output:", cfg.Logging.Output)
+	// Create Fiber instance
+	app := fiber.New()
 
-	// Use the database config
-	for _, db := range cfg.Databases {
-		fmt.Println("Database:", db.Name)
-		fmt.Println(" Engine:", db.Engine)
-		fmt.Println(" URI:", db.URI)
+	// Add request logging middleware
+	app.Use(middleware.RequestLogger())
+
+	// Health check: service alive
+	app.Get("/healthz", func(c *fiber.Ctx) error {
+		return c.JSON(fiber.Map{
+			"status": "ok",
+		})
+	})
+
+	// Ready check: app dependencies ready
+	app.Get("/readyz", func(c *fiber.Ctx) error {
+		// add DB/ping check here if needed
+		return c.JSON(fiber.Map{
+			"ready": true,
+		})
+	})
+
+	// Combine host + port
+	address := cfg.Server.Host + ":" + strconv.Itoa(cfg.Server.Port)
+
+	// Bind manually so we can log AFTER server is ready
+	ln, err := net.Listen("tcp", address)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to bind port")
 	}
 
-	// Use module config
-	for _, mod := range cfg.Modules {
-		fmt.Println("\nModule:", mod.Name)
-		fmt.Println(" Table:", mod.Table)
-		fmt.Println(" Operations:", mod.Operations)
-	}
+	log.Info().Msgf("🚀 Server is ready at http://%s:%s", cfg.Server.Host, strconv.Itoa(cfg.Server.Port))
+
+	// Start Fiber
+	go func() {
+		if err := app.Listener(ln); err != nil {
+			log.Error().Err(err).Msg("server stopped")
+		}
+	}()
+
+	// Graceful shutdown
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
+	<-stop
+
+	log.Warn().Msg("🛑 Stopping server...")
+	_ = app.Shutdown()
+	log.Info().Msg("✔ Shutdown complete")
 }
