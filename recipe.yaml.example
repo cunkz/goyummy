@@ -8,7 +8,7 @@ server:
 
 logging:
   level: error
-  file: /var/log/myapp.log
+  output: stdout
 
 databases:
   - name: primary

@@ -22,8 +22,8 @@ type AppRecipe struct {
 	} `yaml:"server" json:"server"`
 
 	Logging struct {
-		Level string `yaml:"level" json:"level"`
-		File  string `yaml:"file" json:"file"`
+		Level  string `yaml:"level" json:"level"`
+		Output string `yaml:"output" json:"output"`
 	} `yaml:"logging" json:"logging"`
 
 	Databases []struct {
@@ -142,8 +142,8 @@ func merge(dst, src *AppRecipe) {
 	if src.Logging.Level != "" {
 		dst.Logging.Level = src.Logging.Level
 	}
-	if src.Logging.File != "" {
-		dst.Logging.File = src.Logging.File
+	if src.Logging.Output != "" {
+		dst.Logging.Output = src.Logging.Output
 	}
 
 	// slices: full replace
