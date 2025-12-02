@@ -9,6 +9,7 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"github.com/cunkz/goyummy/bin/config"
+	"github.com/cunkz/goyummy/bin/helpers/db"
 	"github.com/cunkz/goyummy/bin/helpers/utils"
 	"github.com/cunkz/goyummy/bin/middleware"
 
@@ -27,6 +28,10 @@ func main() {
 
 	// Add request logging middleware
 	app.Use(middleware.RequestLogger())
+
+	if err := db.InitDatabases(cfg); err != nil {
+		log.Error().Err(err).Msg("error init databases")
+	}
 
 	// Add Ready and Health check Route
 	utils.RegisterHealthCheckRoutes(app)

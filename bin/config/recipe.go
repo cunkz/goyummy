@@ -30,6 +30,10 @@ type AppConfig struct {
 		Name   string `yaml:"name" json:"name"`
 		Engine string `yaml:"engine" json:"engine"`
 		URI    string `yaml:"uri" json:"uri"`
+		Pool   struct {
+			Max int `yaml:"max" json:"max"`
+			Min int `yaml:"min" json:"min"`
+		} `yaml:"pool" json:"pool"`
 	} `yaml:"databases" json:"databases"`
 
 	Modules []struct {
