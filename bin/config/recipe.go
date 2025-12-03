@@ -36,13 +36,15 @@ type AppConfig struct {
 		} `yaml:"pool" json:"pool"`
 	} `yaml:"databases" json:"databases"`
 
-	Modules []struct {
-		Name       string   `yaml:"name" json:"name"`
-		Database   string   `yaml:"database" json:"database"`
-		Table      string   `yaml:"table" json:"table"`
-		Fields     []string `yaml:"fields" json:"fields"`
-		Operations []string `yaml:"operations" json:"operations"`
-	} `yaml:"modules" json:"modules"`
+	Modules []Module `yaml:"modules" json:"modules"`
+}
+
+type Module struct {
+	Name       string   `yaml:"name" json:"name"`
+	Database   string   `yaml:"database" json:"database"`
+	Table      string   `yaml:"table" json:"table"`
+	Fields     []string `yaml:"fields" json:"fields"`
+	Operations []string `yaml:"operations" json:"operations"`
 }
 
 // -------------------------------------

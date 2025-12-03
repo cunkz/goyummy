@@ -39,8 +39,5 @@ GoYummy helps you generate and manage lightweight service using a simple Go + Fi
 git clone https://github.com/cunkz/goyummy.git
 cd goyummy
 
-# build
-go build ./cmd/goyummy
-
 # run
-./goyummy
+go run ./bin/app/main.go
