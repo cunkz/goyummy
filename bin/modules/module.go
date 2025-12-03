@@ -67,7 +67,7 @@ func registerModule(app *fiber.App, m config.Module) {
 					return err
 				}
 
-				return c.JSON(fiber.Map{"id": id})
+				return utils.ResponseSuccess(c, fiber.Map{"id": id}, "Data has been created")
 			})
 			log.Info().Msgf("Add Route POST %s", baseRoute)
 		case "read_list":
@@ -106,7 +106,7 @@ func registerModule(app *fiber.App, m config.Module) {
 					list = append(list, item)
 				}
 
-				return c.JSON(list)
+				return utils.ResponseSuccess(c, list, "Successfully read data")
 			})
 			log.Info().Msgf("Add Route GET %s", baseRoute)
 		case "read_single":
@@ -129,14 +129,14 @@ func registerModule(app *fiber.App, m config.Module) {
 
 				err := row.Scan(values...)
 				if err != nil {
-					return fiber.NewError(404, "not found")
+					return utils.ResponseError(c, 404, "Data not found")
 				}
 
 				for i, f := range m.Fields {
 					result[f] = *(values[i].(*string))
 				}
 
-				return c.JSON(result)
+				return utils.ResponseSuccess(c, result, "Successfully read data")
 			})
 			log.Info().Msgf("Add Route GET %s", baseRoute+"/:id")
 		case "update":
@@ -166,7 +166,7 @@ func registerModule(app *fiber.App, m config.Module) {
 				argNum++
 
 				if len(sets) == 0 {
-					return fiber.NewError(400, "no fields provided")
+					return utils.ResponseError(c, 400, "No fields provided")
 				}
 
 				args = append(args, id)
@@ -179,7 +179,7 @@ func registerModule(app *fiber.App, m config.Module) {
 					return err
 				}
 
-				return c.JSON(fiber.Map{"updated": true})
+				return utils.ResponseSuccess(c, fiber.Map{"updated": true}, "Successfully update data")
 			})
 			log.Info().Msgf("Add Route PATCH %s", baseRoute+"/:id")
 		case "delete":
@@ -194,7 +194,7 @@ func registerModule(app *fiber.App, m config.Module) {
 					return err
 				}
 
-				return c.JSON(fiber.Map{"deleted": true})
+				return utils.ResponseSuccess(c, fiber.Map{"deleted": true}, "Successfully delete data")
 			})
 			log.Info().Msgf("Add Route DELETE %s", baseRoute+"/:id")
 		default:
