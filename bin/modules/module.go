@@ -1,6 +1,7 @@
 package modules
 
 import (
+	"database/sql"
 	"fmt"
 	"strings"
 	"time"
@@ -75,36 +76,54 @@ func registerModule(app *fiber.App, m config.Module) {
 			// GET ALL
 			// ----------------------------
 			app.Get(baseRoute, func(c *fiber.Ctx) error {
-				rows, err := db.Query("SELECT id, " + fields + " FROM " + m.Table)
+				// Make SELECT list: "id, name, description ..."
+				cols := append([]string{"id"}, m.Fields...)
+				query := "SELECT " + strings.Join(cols, ",") + " FROM " + m.Table
+
+				rows, err := db.Query(query)
 				if err != nil {
 					return err
 				}
 				defer rows.Close()
 
 				list := []map[string]any{}
+
 				for rows.Next() {
-					values := make([]any, 0, len(m.Fields)+1)
-					valuesPtrs := make([]any, 0, len(m.Fields)+1)
+					// prepare scan targets
+					scanTargets := make([]any, len(cols))
 
-					var id int
-					values = append(values, &id)
-					valuesPtrs = append(valuesPtrs, &id)
+					// id (string)
+					var id sql.NullString
+					scanTargets[0] = &id
 
-					for range m.Fields {
-						var v string
-						values = append(values, &v)
-						valuesPtrs = append(valuesPtrs, &v)
+					// other fields (string)
+					nullFields := make([]sql.NullString, len(m.Fields))
+					for i := range nullFields {
+						scanTargets[i+1] = &nullFields[i]
 					}
 
-					rows.Scan(valuesPtrs...)
-					item := map[string]any{"id": id}
+					// execute scan
+					if err := rows.Scan(scanTargets...); err != nil {
+						return err
+					}
+
+					// build output
+					item := map[string]any{
+						"id": id.String,
+					}
 
 					for i, f := range m.Fields {
-						item[f] = *(values[i+1].(*string))
+						if nullFields[i].Valid {
+							item[f] = nullFields[i].String
+						} else {
+							item[f] = nil
+						}
 					}
 
 					list = append(list, item)
 				}
+
+				// return c.JSON(list)
 
 				return utils.ResponseSuccess(c, list, "Successfully read data")
 			})
