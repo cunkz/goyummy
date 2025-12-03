@@ -36,6 +36,7 @@ func main() {
 	// Add Ready and Health check Route
 	utils.RegisterHealthCheckRoutes(app)
 
+	// Add route based on configuration
 	for _, mod := range cfg.Modules {
 		log.Info().Msg(mod.Name)
 		for _, op := range mod.Operations {
