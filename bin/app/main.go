@@ -35,7 +35,7 @@ func main() {
 	utils.RegisterHealthCheckRoutes(app)
 
 	// Register routes and controllers for each module
-	modules.RegisterModules(app, cfg.Modules)
+	modules.RegisterModules(app, cfg)
 
 	// Network check
 	ln := utils.NetCheck(cfg.Server.Host, strconv.Itoa(cfg.Server.Port))

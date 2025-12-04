@@ -196,3 +196,13 @@ func LoadAuto(paths ...string) (*AppConfig, error) {
 
 	return cfg, nil
 }
+
+// Find DB Engine by Name
+func GetDBEngineByName(cfg *AppConfig, name string) string {
+	for _, db := range cfg.Databases {
+		if db.Name == name {
+			return db.Engine
+		}
+	}
+	return "" // not found
+}

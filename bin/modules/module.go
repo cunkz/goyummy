@@ -1,7 +1,11 @@
 package modules
 
 import (
+	"context"
 	"database/sql"
+	"encoding/json"
+
+	// "database/sql"
 	"fmt"
 	"strings"
 	"time"
@@ -9,19 +13,28 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
 
 	"github.com/cunkz/goyummy/bin/config"
 	"github.com/cunkz/goyummy/bin/helpers/db"
 	"github.com/cunkz/goyummy/bin/helpers/utils"
 )
 
-func RegisterModules(app *fiber.App, modules []config.Module) {
-	for _, m := range modules {
-		registerModule(app, m)
+func RegisterModules(app *fiber.App, cfg *config.AppConfig) {
+	for _, m := range cfg.Modules {
+		mSlug := utils.ToSlug(m.Name)
+		baseRoute := fmt.Sprintf("/api/%s/v1", mSlug)
+		dbEngine := config.GetDBEngineByName(cfg, m.Database)
+		if dbEngine == "mongo" {
+			registerModuleMongo(app, baseRoute, m)
+		} else {
+			registerModule(app, baseRoute, m)
+		}
 	}
 }
 
-func registerModule(app *fiber.App, m config.Module) {
+func registerModule(app *fiber.App, baseRoute string, m config.Module) {
 	db := db.PostgresDBs[m.Database] // for now: postgres engine
 
 	m.Fields = append(m.Fields, "id")
@@ -34,8 +47,6 @@ func registerModule(app *fiber.App, m config.Module) {
 	}
 	placeholdersStr := strings.Join(placeholders, ",")
 
-	mSlug := utils.ToSlug(m.Name)
-	baseRoute := fmt.Sprintf("/api/%s/v1", mSlug)
 	for _, op := range m.Operations {
 		switch strings.ToLower(op) {
 		case "create":
@@ -212,6 +223,141 @@ func registerModule(app *fiber.App, m config.Module) {
 				_, err := db.Exec("DELETE FROM "+m.Table+" WHERE id=$1", id)
 				if err != nil {
 					return err
+				}
+
+				return utils.ResponseSuccess(c, fiber.Map{"deleted": true}, "Successfully delete data")
+			})
+			log.Info().Msgf("Add Route DELETE %s", baseRoute+"/:id")
+		default:
+			log.Info().Msgf("Invalid Operation for Module: %s", m.Name)
+		}
+	}
+}
+
+func registerModuleMongo(app *fiber.App, baseRoute string, m config.Module) {
+	mongoDB := db.MongoDBs[m.Database]
+	col := mongoDB.Collection(m.Table)
+
+	for _, op := range m.Operations {
+		switch strings.ToLower(op) {
+		case "create":
+			// ----------------------------
+			// CREATE (INSERT)
+			// ----------------------------
+			app.Post(baseRoute, func(c *fiber.Ctx) error {
+				ctx := context.Background()
+
+				body := map[string]any{}
+				if err := c.BodyParser(&body); err != nil {
+					return utils.ResponseError(c, 400, err.Error())
+				}
+
+				id := uuid.New().String()
+				body["id"] = id
+				body["created_at"] = time.Now()
+				body["updated_at"] = time.Now()
+				_, err := col.InsertOne(ctx, body)
+				if err != nil {
+					return utils.ResponseError(c, 500, err.Error())
+				}
+				return utils.ResponseSuccess(c, fiber.Map{"id": id}, "Data has been created")
+			})
+			log.Info().Msgf("Add Route POST %s", baseRoute)
+		case "read_list":
+			// ----------------------------
+			// GET ALL
+			// ----------------------------
+			app.Get(baseRoute, func(c *fiber.Ctx) error {
+				ctx := context.Background()
+
+				cursor, err := col.Find(ctx, bson.M{})
+				if err != nil {
+					return utils.ResponseError(c, 500, err.Error())
+				}
+				defer cursor.Close(ctx)
+
+				results := []bson.M{}
+				if err := cursor.All(ctx, &results); err != nil {
+					return utils.ResponseError(c, 500, err.Error())
+				}
+
+				return utils.ResponseSuccess(c, results, "Data has been created")
+			})
+			log.Info().Msgf("Add Route GET %s", baseRoute)
+		case "read_single":
+			// ----------------------------
+			// GET by ID
+			// ----------------------------
+			app.Get(baseRoute+"/:id", func(c *fiber.Ctx) error {
+				ctx := context.Background()
+				id := c.Params("id")
+
+				result := bson.M{}
+				err := col.FindOne(ctx, bson.M{"id": id}).Decode(&result)
+				if err == mongo.ErrNoDocuments {
+					return utils.ResponseError(c, 404, "Data not found")
+				}
+				if err != nil {
+					return utils.ResponseError(c, 500, err.Error())
+				}
+
+				return utils.ResponseSuccess(c, result, "Successfully read data")
+			})
+			log.Info().Msgf("Add Route GET %s", baseRoute+"/:id")
+		case "update":
+			// ----------------------------
+			// UPDATE
+			// ----------------------------
+			app.Patch(baseRoute+"/:id", func(c *fiber.Ctx) error {
+				ctx := context.Background()
+
+				// Parse ID from URL
+				id := c.Params("id")
+
+				// Parse request body into dynamic map
+				body := map[string]any{}
+				if err := c.BodyParser(&body); err != nil {
+					return utils.ResponseError(c, 400, "Invalid JSON Body")
+				}
+
+				// Prevent updating primary key fields
+				delete(body, "_id")
+				delete(body, "id")
+
+				// If body is empty, do nothing
+				if len(body) == 0 {
+					return utils.ResponseError(c, 400, "No fields to update")
+				}
+
+				// Add updated_at automatically (optional)
+				body["updated_at"] = time.Now()
+
+				b, _ := json.Marshal(body)
+				jsonString := string(b)
+
+				log.Info().Msg(id)
+				log.Info().Msg(jsonString)
+
+				// Do partial update with $set
+				filter := bson.M{"id": id}
+				_, err := col.UpdateOne(ctx, filter, bson.M{"$set": body})
+				if err != nil {
+					return utils.ResponseError(c, 500, err.Error())
+				}
+				return utils.ResponseSuccess(c, fiber.Map{"updated": true}, "Successfully update data")
+			})
+			log.Info().Msgf("Add Route PATCH %s", baseRoute+"/:id")
+		case "delete":
+			// ----------------------------
+			// DELETE
+			// ----------------------------
+			app.Delete(baseRoute+"/:id", func(c *fiber.Ctx) error {
+				ctx := context.Background()
+				id := c.Params("id")
+
+				_, err := col.DeleteOne(ctx, bson.M{"id": id})
+				if err != nil {
+					return utils.ResponseError(c, 500, err.Error())
 				}
 
 				return utils.ResponseSuccess(c, fiber.Map{"deleted": true}, "Successfully delete data")

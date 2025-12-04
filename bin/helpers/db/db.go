@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"net/url"
+	"strings"
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -75,7 +77,10 @@ func InitDatabases(cfg *config.AppConfig) error {
 				return fmt.Errorf("mongo (%s) error: %v", db.Name, err)
 			}
 
-			MongoDBs[db.Name] = client.Database(db.Name)
+			u, _ := url.Parse(db.URI)
+			dbName := strings.TrimPrefix(u.Path, "/")
+
+			MongoDBs[db.Name] = client.Database(dbName)
 		}
 	}
 
