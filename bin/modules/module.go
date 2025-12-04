@@ -50,11 +50,12 @@ func registerModule(app *fiber.App, m config.Module) {
 
 				args := []any{}
 				for _, f := range m.Fields {
-					if f == "id" {
+					switch f {
+					case "id":
 						args = append(args, uuid.New().String())
-					} else if f == "created_at" || f == "updated_at" {
+					case "created_at", "updated_at":
 						args = append(args, time.Now())
-					} else {
+					default:
 						args = append(args, body[f])
 					}
 				}
