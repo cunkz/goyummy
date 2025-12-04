@@ -26,7 +26,7 @@ databases:
       min: 5
 
   - name: config
-    engine: mongodb
+    engine: mongo
     uri: mongodb://localhost:27017/config_db
     pool:
       max: 15
