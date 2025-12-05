@@ -17,27 +17,18 @@ databases:
     pool:
       max: 10
       min: 2
-
   - name: analytic
     engine: mysql
     uri: mysql://root:pass@localhost:3306/analytic_db
     pool:
       max: 20
       min: 5
-
   - name: config
     engine: mongo
     uri: mongodb://localhost:27017/config_db
     pool:
       max: 15
       min: 3
-
-  - name: cache
-    engine: redis
-    uri: redis://localhost:6379
-    pool:
-      max: 5
-      min: 1
 
 modules:
   - name: category
