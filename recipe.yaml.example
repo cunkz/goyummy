@@ -31,14 +31,14 @@ databases:
       min: 3
 
 modules:
-  - name: category
+  - name: category # it will be converted as slug for route
     database: primary
     table: category
     fields:
       - name
     operations:
-      - create
-      - read_list
-      - read_single
-      - update
-      - delete
+      - create # POST /api/category/v1
+      - read_list # GET /api/category/v1
+      - read_single # GET /api/category/v1/:id
+      - update # PATCH /api/category/v1/:id
+      - delete # DELETE /api/category/v1/:id
