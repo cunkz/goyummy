@@ -2,8 +2,17 @@ app:
   name: libary-application
   environment: development
 
+auths:
+  - name: auth-jwt
+    type: jwt
+    jwt_pubkey64: <your-base64-encoded-string>
+  - name: auth-basic
+    type: basic
+    basic_username: john
+    basic_password: doe
+
 server:
-  host: 0.0.0.0
+  host: localhost
   port: 8080
 
 logging:
@@ -42,3 +51,15 @@ modules:
       - read_single # GET /api/category/v1/:id
       - update # PATCH /api/category/v1/:id
       - delete # DELETE /api/category/v1/:id
+  - name: author
+    auth: auth-basic #it will use auth-basic middleware based auths configuration
+    database: primary
+    table: category
+    fields:
+      - name
+    operations:
+      - create
+      - read_list
+      - read_single
+      - update
+      - delete

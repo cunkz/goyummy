@@ -15,6 +15,7 @@ import (
 )
 
 func main() {
+	// Initalize Config
 	cfg, _ := config.LoadAuto()
 
 	// Initialize logger

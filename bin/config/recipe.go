@@ -8,6 +8,8 @@ import (
 	"strconv"
 
 	"gopkg.in/yaml.v3"
+
+	"github.com/rs/zerolog/log"
 )
 
 type AppConfig struct {
@@ -37,12 +39,25 @@ type AppConfig struct {
 	} `yaml:"databases" json:"databases"`
 
 	Modules []Module `yaml:"modules" json:"modules"`
+
+	Auths []Auth `yaml:"auths" json:"auths"`
+}
+
+type Auth struct {
+	Name string `yaml:"name" json:"name"`
+	Type string `yaml:"type" json:"type"`
+
+	JWTPubKey64   string `yaml:"jwt_pubkey64,omitempty" json:"jwt_pubkey64,omitempty"`
+	JWTPrivKey64  string `yaml:"jwt_privkey64,omitempty" json:"jwt_privkey64,omitempty"`
+	BasicUsername string `yaml:"basic_username,omitempty" json:"basic_username,omitempty"`
+	BasicPassword string `yaml:"basic_password,omitempty" json:"basic_password,omitempty"`
 }
 
 type Module struct {
 	Name       string   `yaml:"name" json:"name"`
 	Database   string   `yaml:"database" json:"database"`
 	Table      string   `yaml:"table" json:"table"`
+	Auth       string   `yaml:"auth,omitempty" json:"auth,omitempty"`
 	Fields     []string `yaml:"fields" json:"fields"`
 	Operations []string `yaml:"operations" json:"operations"`
 }
@@ -65,6 +80,7 @@ func detectConfigFile() string {
 }
 
 func loadFromFile(path string) (*AppConfig, error) {
+	log.Info().Msg("Load Config from File")
 	if path == "" {
 		return &AppConfig{}, nil // no file, empty recipe
 	}
@@ -90,6 +106,7 @@ func loadFromFile(path string) (*AppConfig, error) {
 // -------------------------------------
 
 func loadFromEnvConfig() (*AppConfig, error) {
+	log.Info().Msg("Load Config from Environment")
 	y := os.Getenv("CONFIG_YAML")
 	j := os.Getenv("CONFIG_JSON")
 
@@ -112,6 +129,7 @@ func loadFromEnvConfig() (*AppConfig, error) {
 // -------------------------------------
 
 func applyEnvOverrides(cfg *AppConfig) {
+	log.Info().Msg("Override Config from Environment")
 	if v := os.Getenv("APP_NAME"); v != "" {
 		cfg.App.Name = v
 	}
@@ -159,6 +177,9 @@ func merge(dst, src *AppConfig) {
 	if len(src.Modules) > 0 {
 		dst.Modules = src.Modules
 	}
+	if len(src.Auths) > 0 {
+		dst.Auths = src.Auths
+	}
 }
 
 // ------------------------
@@ -205,4 +226,14 @@ func GetDBEngineByName(cfg *AppConfig, name string) string {
 		}
 	}
 	return "" // not found
+}
+
+// Find Auth by Name
+func FindAuth(cfg *AppConfig, name string) *Auth {
+	for _, a := range cfg.Auths {
+		if a.Name == name {
+			return &a
+		}
+	}
+	return nil
 }

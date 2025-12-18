@@ -17,24 +17,29 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 
 	"github.com/cunkz/goyummy/bin/config"
+	"github.com/cunkz/goyummy/bin/helpers/auth"
 	"github.com/cunkz/goyummy/bin/helpers/db"
 	"github.com/cunkz/goyummy/bin/helpers/utils"
 )
 
 func RegisterModules(app *fiber.App, cfg *config.AppConfig) {
+	// Initalize Auth
+	authMap, _ := auth.BuildAuthMap(cfg)
+
 	for _, m := range cfg.Modules {
 		mSlug := utils.ToSlug(m.Name)
 		baseRoute := fmt.Sprintf("/api/%s/v1", mSlug)
+		authMiddleware := authMap[m.Auth]
 		dbEngine := config.GetDBEngineByName(cfg, m.Database)
 		if dbEngine == "mongo" {
-			registerModuleMongo(app, baseRoute, m)
+			registerModuleMongo(app, authMiddleware, baseRoute, m)
 		} else {
-			registerModule(app, baseRoute, m)
+			registerModule(app, authMiddleware, baseRoute, m)
 		}
 	}
 }
 
-func registerModule(app *fiber.App, baseRoute string, m config.Module) {
+func registerModule(app *fiber.App, authMiddleware fiber.Handler, baseRoute string, m config.Module) {
 	db := db.PostgresDBs[m.Database] // for now: postgres engine
 
 	m.Fields = append(m.Fields, "id")
@@ -53,7 +58,7 @@ func registerModule(app *fiber.App, baseRoute string, m config.Module) {
 			// ----------------------------
 			// CREATE (INSERT)
 			// ----------------------------
-			app.Post(baseRoute, func(c *fiber.Ctx) error {
+			createHandler := func(c *fiber.Ctx) error {
 				body := map[string]string{}
 				if err := c.BodyParser(&body); err != nil {
 					return err
@@ -81,13 +86,18 @@ func registerModule(app *fiber.App, baseRoute string, m config.Module) {
 				}
 
 				return utils.ResponseSuccess(c, fiber.Map{"id": id}, "Data has been created")
-			})
+			}
+			if authMiddleware != nil {
+				app.Post(baseRoute, authMiddleware, createHandler)
+			} else {
+				app.Post(baseRoute, createHandler)
+			}
 			log.Info().Msgf("Add Route POST %s", baseRoute)
 		case "read_list":
 			// ----------------------------
 			// GET ALL
 			// ----------------------------
-			app.Get(baseRoute, func(c *fiber.Ctx) error {
+			getHandler := func(c *fiber.Ctx) error {
 				// Make SELECT list: "id, name, description ..."
 				cols := append([]string{"id"}, m.Fields...)
 				query := "SELECT " + strings.Join(cols, ",") + " FROM " + m.Table
@@ -138,13 +148,18 @@ func registerModule(app *fiber.App, baseRoute string, m config.Module) {
 				// return c.JSON(list)
 
 				return utils.ResponseSuccess(c, list, "Successfully read data")
-			})
+			}
+			if authMiddleware != nil {
+				app.Get(baseRoute, authMiddleware, getHandler)
+			} else {
+				app.Get(baseRoute, getHandler)
+			}
 			log.Info().Msgf("Add Route GET %s", baseRoute)
 		case "read_single":
 			// ----------------------------
 			// GET by ID
 			// ----------------------------
-			app.Get(baseRoute+"/:id", func(c *fiber.Ctx) error {
+			getHandler := func(c *fiber.Ctx) error {
 				id := c.Params("id")
 
 				query := "SELECT " + fields + " FROM " + m.Table + " WHERE id=$1"
@@ -168,13 +183,18 @@ func registerModule(app *fiber.App, baseRoute string, m config.Module) {
 				}
 
 				return utils.ResponseSuccess(c, result, "Successfully read data")
-			})
+			}
+			if authMiddleware != nil {
+				app.Get(baseRoute+"/:id", authMiddleware, getHandler)
+			} else {
+				app.Get(baseRoute+"/:id", getHandler)
+			}
 			log.Info().Msgf("Add Route GET %s", baseRoute+"/:id")
 		case "update":
 			// ----------------------------
 			// UPDATE
 			// ----------------------------
-			app.Patch(baseRoute+"/:id", func(c *fiber.Ctx) error {
+			updateHandler := func(c *fiber.Ctx) error {
 				id := c.Params("id")
 				body := map[string]string{}
 				_ = c.BodyParser(&body)
@@ -211,13 +231,18 @@ func registerModule(app *fiber.App, baseRoute string, m config.Module) {
 				}
 
 				return utils.ResponseSuccess(c, fiber.Map{"updated": true}, "Successfully update data")
-			})
+			}
+			if authMiddleware != nil {
+				app.Patch(baseRoute+"/:id", authMiddleware, updateHandler)
+			} else {
+				app.Patch(baseRoute+"/:id", updateHandler)
+			}
 			log.Info().Msgf("Add Route PATCH %s", baseRoute+"/:id")
 		case "delete":
 			// ----------------------------
 			// DELETE
 			// ----------------------------
-			app.Delete(baseRoute+"/:id", func(c *fiber.Ctx) error {
+			deleteHandler := func(c *fiber.Ctx) error {
 				id := c.Params("id")
 
 				_, err := db.Exec("DELETE FROM "+m.Table+" WHERE id=$1", id)
@@ -226,7 +251,12 @@ func registerModule(app *fiber.App, baseRoute string, m config.Module) {
 				}
 
 				return utils.ResponseSuccess(c, fiber.Map{"deleted": true}, "Successfully delete data")
-			})
+			}
+			if authMiddleware != nil {
+				app.Delete(baseRoute+"/:id", authMiddleware, deleteHandler)
+			} else {
+				app.Delete(baseRoute+"/:id", deleteHandler)
+			}
 			log.Info().Msgf("Add Route DELETE %s", baseRoute+"/:id")
 		default:
 			log.Info().Msgf("Invalid Operation for Module: %s", m.Name)
@@ -234,7 +264,7 @@ func registerModule(app *fiber.App, baseRoute string, m config.Module) {
 	}
 }
 
-func registerModuleMongo(app *fiber.App, baseRoute string, m config.Module) {
+func registerModuleMongo(app *fiber.App, authMiddleware fiber.Handler, baseRoute string, m config.Module) {
 	mongoDB := db.MongoDBs[m.Database]
 	col := mongoDB.Collection(m.Table)
 
